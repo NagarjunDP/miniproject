@@ -1,7 +1,7 @@
 import json
 import requests
 
-BASE_URL = 'http://localhost:6000/api'
+BASE_URL = 'http://localhost:9000/api'
 
 
 def add_to_chain(file_data):

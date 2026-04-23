@@ -1,7 +1,7 @@
 import os
 from flask import render_template, flash, url_for, redirect, request
 from flask_login import current_user, login_user, logout_user, login_required
-from werkzeug.urls import url_parse
+from urllib.parse import urlparse
 from werkzeug.utils import secure_filename
 from app import app, db, gpg
 from app.forms import RegistrationForm, LoginForm, AddFileForm, VerifyFileForm
@@ -29,7 +29,7 @@ def login():
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
-        if not next_page or url_parse(next_page).netloc != '':
+        if not next_page or urlparse(next_page).netloc != '':
             next_page = url_for('index')
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
@@ -112,7 +112,7 @@ def verify_file():
                 app.config['UPLOAD_FOLDER'], file_name))
             verify_file_hash = file_hash(file_name)
             code, response = chain_search_file(verify_file_hash)
-            if code is 200:
+            if code == 200:
                 verify = gpg.verify(response.get('txn').get('signature'))
             return render_template(
                     'verify_file.html', title='Verify File', form=form,
