@@ -1,8 +1,8 @@
+import time
 from app import db, login, gpg
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from hashlib import md5
-
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -10,6 +10,15 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
     key_fingerprint = db.Column(db.String(60), unique=True)
+    
+    # Role-based system
+    role = db.Column(db.String(20), default='user') # 'user' or 'miner'
+    
+    # Miner stats
+    stake_balance = db.Column(db.Integer, default=1000)
+    total_votes = db.Column(db.Integer, default=0)
+    correct_votes = db.Column(db.Integer, default=0)
+    reputation = db.Column(db.Integer, default=100)
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -40,6 +49,37 @@ class User(UserMixin, db.Model):
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
 
+class ArenaTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    file_name = db.Column(db.String(120))
+    file_hash = db.Column(db.String(100))
+    file_signature = db.Column(db.String(500))
+    sign_key = db.Column(db.String(500))
+    risk_score = db.Column(db.Integer)
+    
+    status = db.Column(db.String(20), default='pending') # pending, voting, accepted, rejected
+    voting_end_time = db.Column(db.Float, nullable=True) # timestamp
+    proposed_decision = db.Column(db.String(10), nullable=True) # 'accept' or 'reject'
+    uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'file_name': self.file_name,
+            'file_hash': self.file_hash,
+            'risk_score': self.risk_score,
+            'status': self.status,
+            'voting_end_time': self.voting_end_time,
+            'proposed_decision': self.proposed_decision,
+            'time_left': max(0, int(self.voting_end_time - time.time())) if self.voting_end_time else 0
+        }
+
+class Vote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_id = db.Column(db.Integer, db.ForeignKey('arena_transaction.id'))
+    miner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    decision = db.Column(db.String(10)) # 'accept' or 'reject'
+    staked_amount = db.Column(db.Integer, default=5)
 
 @login.user_loader
 def load_user(id):

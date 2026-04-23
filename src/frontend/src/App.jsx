@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
-import { Shield, Upload, CheckCircle, LogOut } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Shield, LogOut } from 'lucide-react';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import MinerDashboard from './components/MinerDashboard';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -12,52 +13,72 @@ function App() {
     try {
       const res = await fetch('/api/v1/auth/me');
       if (res.ok) {
-        const data = await res.json();
-        setUser(data);
+        setUser(await res.json());
       } else {
         setUser(null);
       }
-    } catch (e) {
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  useEffect(() => { checkAuth(); }, []);
 
   const handleLogout = async () => {
     await fetch('/api/v1/auth/logout', { method: 'POST' });
     setUser(null);
   };
 
-  if (loading) return <div className="main-content" style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>Loading...</div>;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ fontSize: '3rem' }}>🛡️</div>
+        <div style={{ color: 'var(--gold-primary)', fontWeight: 600 }}>Loading BlockVerify...</div>
+      </div>
+    );
+  }
 
   return (
     <Router>
-      <nav className="navbar">
-        <Link to="/" className="navbar-brand">
-          <Shield size={28} /> BlockVerify
-        </Link>
-        <div className="navbar-nav">
-          {user ? (
-            <>
-              <span className="nav-link" style={{color: 'var(--text-primary)'}}>Hi, {user.username}!</span>
-              <button onClick={handleLogout} className="btn-secondary" style={{padding: '8px 16px', display: 'flex', gap: '8px', alignItems: 'center'}}>
-                <LogOut size={16} /> Logout
-              </button>
-            </>
-          ) : (
-            <Link to="/login" className="btn-primary">Sign In</Link>
-          )}
-        </div>
-      </nav>
+      {user && (
+        <nav className="navbar">
+          <div className="navbar-brand">
+            <Shield size={26} /> BlockVerify
+            {user.role === 'miner' && (
+              <span style={{
+                background: 'rgba(82,196,26,0.15)', border: '1px solid #52c41a',
+                color: '#73d13d', padding: '2px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 700,
+              }}>⛏️ MINER MODE</span>
+            )}
+          </div>
+          <div className="navbar-nav">
+            {user.role === 'miner' && (
+              <span style={{ color: 'var(--gold-primary)', fontWeight: 600, fontSize: '0.9rem' }}>
+                ⚡ {user.stake_balance} tokens
+              </span>
+            )}
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              👤 {user.username}
+            </span>
+            <button onClick={handleLogout} style={{
+              background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)',
+              padding: '8px 16px', borderRadius: '8px', fontFamily: 'var(--font-family)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', transition: 'all 0.3s',
+            }}>
+              <LogOut size={15} /> Logout
+            </button>
+          </div>
+        </nav>
+      )}
 
-      <main className="main-content animate-fade-in">
+      <main className="main-content animate-fade-in" style={{ maxWidth: user?.role === 'miner' ? '900px' : '780px' }}>
         <Routes>
-          <Route path="/" element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} />
+          <Route path="/" element={
+            !user ? <Navigate to="/login" /> :
+            user.role === 'miner' ? <MinerDashboard user={user} /> : <Dashboard user={user} />
+          } />
           <Route path="/login" element={!user ? <Auth onAuthSuccess={checkAuth} /> : <Navigate to="/" />} />
         </Routes>
       </main>
