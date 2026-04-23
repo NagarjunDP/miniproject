@@ -1,7 +1,7 @@
 import json
 import requests
 
-BASE_URL = 'http://localhost:9000/api'
+BASE_URL = 'http://localhost:6000/api'
 
 
 def add_to_chain(file_data):
@@ -12,6 +12,10 @@ def add_to_chain(file_data):
             'signature': file_data['file_signature']
     }
     response = requests.post(endpoint, json=data)
+    
+    # Auto-mine block if transaction was successfully added
+    if response.status_code == 201:
+        requests.get(f'{BASE_URL}/mine')
 
     return (response.status_code, json.loads(response.text))
 

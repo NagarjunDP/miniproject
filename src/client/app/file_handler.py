@@ -14,7 +14,7 @@ def file_hash(filename):
 
 
 def file_signature(hash, keyid):
-    return str(gpg.sign(hash, default_key=keyid))
+    return str(gpg.sign(hash, keyid=keyid))
 
 
 def signature_key(keyid):

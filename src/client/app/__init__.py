@@ -15,9 +15,9 @@ login = LoginManager(app)
 login.login_view = 'login'
 
 gpg = GPG(
-    binary=app.config['GPG_BINARY'],
-    homedir=app.config['GPG_KEY_STORE'],
+    gpgbinary=app.config['GPG_BINARY'],
+    gnupghome=app.config['GPG_KEY_STORE'],
     keyring='pubring.gpg',
-    secring='secring.gpg')
+    secret_keyring='secring.gpg')
 
 from app import routes, models, file_handler, block_api
