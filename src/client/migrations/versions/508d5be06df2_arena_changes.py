@@ -1,8 +1,8 @@
 """Arena changes
 
-Revision ID: 2bb644e7a58f
+Revision ID: 508d5be06df2
 Revises: 
-Create Date: 2026-04-23 10:22:36.420839
+Create Date: 2026-04-23 11:23:24.859409
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '2bb644e7a58f'
+revision = '508d5be06df2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -43,6 +43,7 @@ def upgrade():
     sa.Column('file_signature', sa.String(length=500), nullable=True),
     sa.Column('sign_key', sa.String(length=500), nullable=True),
     sa.Column('risk_score', sa.Integer(), nullable=True),
+    sa.Column('security_checks', sa.Text(), nullable=True),
     sa.Column('status', sa.String(length=20), nullable=True),
     sa.Column('voting_end_time', sa.Float(), nullable=True),
     sa.Column('proposed_decision', sa.String(length=10), nullable=True),

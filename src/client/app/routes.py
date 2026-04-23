@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from flask import jsonify, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.utils import secure_filename
@@ -15,8 +16,8 @@ STAKE_PER_VOTE = 5       # tokens staked per vote
 # Cybersecurity Risk Engine
 # ---------------------------------------------------------------------------
 DANGEROUS_KEYWORDS = ['malware', 'virus', 'hack', 'ransomware', 'trojan', 'keylogger', 'exploit']
-SUSPICIOUS_EXTENSIONS = ['.exe', '.bat', '.sh', '.scr', '.vbs', '.msi', '.cmd']
-SUSPICIOUS_EXTENSIONS_SCORE = 55  # forced into arena
+SUSPICIOUS_EXTENSIONS = ['.exe', '.bat', '.sh', '.scr', '.vbs', '.msi', '.cmd', '.pdf']
+SUSPICIOUS_EXTENSIONS_SCORE = 65  # forced into arena
 
 def calculate_risk_score(file_name, file_size, file_hash_str):
     score = 100
@@ -188,6 +189,7 @@ def api_add_file():
                 file_signature=file_sig_str,
                 sign_key=sign_key_str,
                 risk_score=risk_score,
+                security_checks=json.dumps(checks),
                 status='pending',
                 uploader_id=current_user.id
             )

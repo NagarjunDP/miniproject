@@ -34,7 +34,8 @@ const ArenaCard = ({ txn, onVote, myVote, votePending }) => {
   const acceptPct = totalVotes > 0 ? Math.round((txn.accept_votes / totalVotes) * 100) : 0;
   const rejectPct = totalVotes > 0 ? 100 - acceptPct : 0;
   const isVoting = txn.status === 'voting';
-  const canVote = !myVote && isVoting;
+  const isPending = txn.status === 'pending';
+  const canVote = !myVote && (isVoting || isPending);
 
   return (
     <div style={{
@@ -66,15 +67,36 @@ const ArenaCard = ({ txn, onVote, myVote, votePending }) => {
           </div>
         </div>
 
-        {/* Risk score bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ flex: 1, background: '#0a0a0a', borderRadius: '6px', height: '8px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: '6px', background: c.bar, width: `${txn.risk_score}%`, transition: 'width 0.8s ease' }} />
-          </div>
-          <span style={{ color: c.text, fontWeight: 700, fontSize: '0.9rem', minWidth: '80px' }}>
-            {riskLevel} {txn.risk_score}/100
-          </span>
+      {/* Risk score bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div style={{ flex: 1, background: '#0a0a0a', borderRadius: '6px', height: '8px', overflow: 'hidden' }}>
+          <div style={{ height: '100%', borderRadius: '6px', background: c.bar, width: `${txn.risk_score}%`, transition: 'width 0.8s ease' }} />
         </div>
+        <span style={{ color: c.text, fontWeight: 700, fontSize: '0.9rem', minWidth: '80px' }}>
+          {riskLevel} {txn.risk_score}/100
+        </span>
+      </div>
+
+      {/* Security Checks Display */}
+      {txn.security_checks && Object.keys(txn.security_checks).length > 0 && (
+        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '12px', marginBottom: '16px', border: '1px solid var(--border-color)' }}>
+          <h5 style={{ color: 'var(--gold-dark)', marginBottom: '8px', fontSize: '0.8rem', textTransform: 'uppercase' }}>Security Engine Report</h5>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            {Object.entries(txn.security_checks).map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                <span>{
+                  k === 'duplicate' ? (v ? '🔴' : '🟢') :
+                  (v ? '🟢' : '🔴')
+                }</span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  {k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </span>
+                {k === 'duplicate' && v && <span style={{ color: '#ff4d4f', fontWeight: 600 }}>(Detected)</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Timer */}
@@ -130,10 +152,6 @@ const ArenaCard = ({ txn, onVote, myVote, votePending }) => {
       ) : myVote ? (
         <div className="alert alert-success" style={{ marginBottom: 0 }}>
           ✅ You voted: <strong>{myVote.toUpperCase()}</strong> — waiting for consensus...
-        </div>
-      ) : txn.status === 'pending' ? (
-        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textAlign: 'center', padding: '12px', background: '#0a0a0a', borderRadius: '8px' }}>
-          Be the first to vote and set the proposed decision!
         </div>
       ) : null}
     </div>
