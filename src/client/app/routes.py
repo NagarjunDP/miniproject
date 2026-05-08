@@ -18,6 +18,13 @@ STAKE_PER_VOTE = 5       # tokens staked per vote
 DANGEROUS_KEYWORDS = ['malware', 'virus', 'hack', 'ransomware', 'trojan', 'keylogger', 'exploit']
 SUSPICIOUS_EXTENSIONS = ['.exe', '.bat', '.sh', '.scr', '.vbs', '.msi', '.cmd', '.pdf']
 SUSPICIOUS_EXTENSIONS_SCORE = 65  # forced into arena
+ 
+@app.errorhandler(500)
+def handle_500(e):
+    print(f"CRITICAL: Global 500 Error: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
 
 def calculate_risk_score(file_name, file_size, file_hash_str):
     score = 100
@@ -224,11 +231,14 @@ def api_add_file():
 
 @app.route('/api/v1/files/verify', methods=['POST'])
 def api_verify_file():
+    print(f"DEBUG: Entering api_verify_file. Files: {request.files}")
     if 'file' not in request.files:
+        print("DEBUG: 'file' not in request.files")
         return jsonify({'error': 'No file part'}), 400
 
     file = request.files['file']
     if file.filename == '':
+        print("DEBUG: Empty filename")
         return jsonify({'error': 'No selected file'}), 400
 
     file_name = secure_filename(file.filename)
@@ -237,11 +247,38 @@ def api_verify_file():
 
     try:
         verify_file_hash = file_hash(file_name)
+        print(f"DEBUG: Verifying file {file_name} with hash {verify_file_hash}")
         code, response = chain_search_file(verify_file_hash)
+        print(f"DEBUG: Chain search result: {code} - {response}")
 
         verify_status = False
         if code == 200:
-            verify_status = bool(gpg.verify(response.get('txn', {}).get('signature', '')))
+            signature = response.get('txn', {}).get('signature', '')
+            if signature:
+                # The signature is a cleartext signed message, so we just pass it to verify()
+                v = gpg.verify(signature)
+                # verify_status is True only if the signature is valid AND the signed data matches the hash
+                signed_data = v.data.decode().strip() if v.data else ""
+                
+                # Debug logging of all verification details
+                print(f"DEBUG: GPG Result Status: {v.status}")
+                print(f"DEBUG: GPG Result Valid: {v.valid}")
+                print(f"DEBUG: GPG Result Signed Data: '{signed_data}'")
+                print(f"DEBUG: GPG Result Fingerprint: {v.fingerprint}")
+                
+                # If the signature is valid, we trust it even if we can't extract the data (some GPG versions vary)
+                # But we prefer matching the data if possible
+                if v.valid:
+                    if signed_data:
+                        verify_status = (signed_data == verify_file_hash)
+                    else:
+                        verify_status = True # Trust the valid signature if data extraction failed
+                else:
+                    verify_status = False
+                
+                print(f"DEBUG: Final Verification status: {verify_status}")
+            else:
+                print("DEBUG: No signature found in blockchain transaction")
 
         return jsonify({
             'code': code,
@@ -250,7 +287,13 @@ def api_verify_file():
             'hash': verify_file_hash,
         }), code
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"DEBUG: Exception in api_verify_file: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': str(e),
+            'hash': verify_file_hash if 'verify_file_hash' in locals() else '—'
+        }), 500
 
 
 # ---------------------------------------------------------------------------
@@ -446,3 +489,40 @@ def api_pub_key_username(username):
     if not user:
         return jsonify({'error': 'User not found'}), 404
     return jsonify({'pub_key': gpg.export_keys(user.key_fingerprint)})
+
+
+# ---------------------------------------------------------------------------
+# ADMIN/REVIEWER DEBUG ENDPOINTS
+# ---------------------------------------------------------------------------
+
+@app.route('/api/v1/admin/debug/db', methods=['GET'])
+def admin_debug_db():
+    """Return all SQL database records for reviewers."""
+    users = User.query.all()
+    arena_txns = ArenaTransaction.query.all()
+    votes = Vote.query.all()
+    
+    return jsonify({
+        'users': [
+            {
+                'id': u.id,
+                'username': u.username,
+                'email': u.email,
+                'role': u.role,
+                'stake_balance': u.stake_balance,
+                'reputation': u.reputation,
+                'total_votes': u.total_votes,
+                'correct_votes': u.correct_votes
+            } for u in users
+        ],
+        'arena_transactions': [t.to_dict() for t in arena_txns],
+        'votes': [
+            {
+                'id': v.id,
+                'transaction_id': v.transaction_id,
+                'miner_id': v.miner_id,
+                'decision': v.decision,
+                'staked_amount': v.staked_amount
+            } for v in votes
+        ]
+    }), 200

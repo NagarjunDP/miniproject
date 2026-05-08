@@ -156,13 +156,22 @@ const FileUploader = ({ mode }) => {
             </>
           )}
 
-          {/* Hash */}
           <div style={{ marginTop: '16px' }}>
             <h4 style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.85rem' }}>SHA-256 HASH</h4>
-            <pre style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', fontSize: '0.8rem' }}>
+            <pre style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', fontSize: '0.8rem', background: '#111', padding: '10px', borderRadius: '4px' }}>
               {result.file_hash || result.hash || '—'}
             </pre>
           </div>
+
+          {/* Debug Raw Data (only on error or when verifying) */}
+          {(result.error || !result.verify) && (
+            <div style={{ marginTop: '16px', borderTop: '1px dashed #333', paddingTop: '16px' }}>
+               <h4 style={{ color: '#444', marginBottom: '8px', fontSize: '0.75rem' }}>DEBUG RAW DATA</h4>
+               <pre style={{ fontSize: '0.7rem', color: '#666', overflowX: 'auto' }}>
+                 {JSON.stringify(result, null, 2)}
+               </pre>
+            </div>
+          )}
         </div>
       )}
     </div>

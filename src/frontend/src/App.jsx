@@ -4,6 +4,7 @@ import { Shield, LogOut } from 'lucide-react';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import MinerDashboard from './components/MinerDashboard';
+import ReviewerView from './components/ReviewerView';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -62,6 +63,13 @@ function App() {
             <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               👤 {user.username}
             </span>
+            <a href="/reviewer" style={{
+              color: 'var(--gold-primary)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none',
+              border: '1px solid var(--gold-dark)', padding: '6px 12px', borderRadius: '6px',
+              background: 'rgba(212,175,55,0.05)'
+            }}>
+              📊 Reviewer View
+            </a>
             <button onClick={handleLogout} style={{
               background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)',
               padding: '8px 16px', borderRadius: '8px', fontFamily: 'var(--font-family)', cursor: 'pointer',
@@ -79,6 +87,7 @@ function App() {
             !user ? <Navigate to="/login" /> :
             user.role === 'miner' ? <MinerDashboard user={user} /> : <Dashboard user={user} />
           } />
+          <Route path="/reviewer" element={user ? <ReviewerView /> : <Navigate to="/login" />} />
           <Route path="/login" element={!user ? <Auth onAuthSuccess={checkAuth} /> : <Navigate to="/" />} />
         </Routes>
       </main>
